@@ -1,7 +1,7 @@
 <template>
 
     <div>
-        <v-header :seller="seller"></v-header>
+        <v-header :seller="seller"></v-header>  <!--传入获取到的seller到子组件header-->
         <div class="tab border-1px">
             <div class="tab-item"><a v-link="{path:'/goods'}">商品</a></div>
             <div class="tab-item"><a v-link="{path:'/ratings'}">评论</a></div>

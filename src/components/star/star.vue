@@ -1,6 +1,6 @@
 <template>
     <div class="star" :class="starType">
-        <span v-for="itemClass in itemClasses" :class="itemClass" class="star-item"></span>
+        <span v-for="itemClass in itemClasses" :class="itemClass" class="star-item"  track-by="$index"></span>
     </div>
 </template>
 
@@ -12,6 +12,7 @@
     const CLS_HALF = 'half';
 
     export default{
+
         props: {
             size: {
                 type: Number
@@ -54,7 +55,7 @@
             display inline-block
             background-repeat no-repeat
         &.star-48
-            .start-item
+            .star-item
                 width 20px
                 height 20px
                 margin-right 22px
@@ -69,7 +70,7 @@
                 &.off
                     bg-image('star48_off')
         &.star-36
-            .start-item
+            .star-item
                 width 15px
                 height 15px
                 margin-right 16px
@@ -84,7 +85,7 @@
                 &.off
                     bg-image('star36_off')
         &.star-24
-            .start-item
+            .star-item
                 width 10px
                 height 10px
                 margin-right 3px
