@@ -3,7 +3,7 @@
         <!--使用v-el生成vue可以直接使用的对象，注意这里一定要使用中划线，不要使用驼峰。那么在js中就可以直接使用：this.$els.menuWrapper -->
         <div class="menu-wrapper" v-el:menu-wrapper>
             <ul>
-                <li v-for="item in goods" class="menu-item">
+                <li v-for="item in goods" class="menu-item" :class="{'current':currentIndex===$index}" @click="selectMenu($index, $event)">
                     <span class="text border-1px">
                         <span v-show="item.type>0" class="icon" :class="classMap[item.type]"></span>{{item.name}}
                     </span>
@@ -12,7 +12,7 @@
         </div>
         <div class="foods-wrapper" v-el:foods-wrapper>
             <ul>
-                <li v-for="item in goods" class="food-list">
+                <li v-for="item in goods" class="food-list food-list-hook">
                     <h1 class="title">{{item.name}}</h1>
                     <ul>
                         <li v-for="food in item.foods" class="food-item border-1px">
@@ -28,18 +28,25 @@
                                 <div class="price">
                                     <span class="now">￥{{food.price}}</span><span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
                                 </div>
+                                <div class="cartcontrol-wrapper">
+                                    <cartcontrol :food="food"></cartcontrol>
+                                </div>
                             </div>
+
                         </li>
                     </ul>
                 </li>
             </ul>
         </div>
+        <shopcart :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice" ></shopcart>
     </div>
 </template>
 
 <script type="text/ecmascript-6">
 
     import BScroll from 'better-scroll'
+    import shopcart from 'components/shopcart/shopcart'
+    import cartcontrol from 'components/cartcontrol/cartcontrol'
 
     const ERR_OK = 0;
     export default{
@@ -48,9 +55,15 @@
                 type: Object
             }
         },
+        components:{
+            shopcart,
+            cartcontrol
+        },
         data(){
             return {
-                goods: []
+                goods: [],
+                listHeight: [],  //存放每个商品分类区间的高度
+                scrollY: 0
             }
         },
         created(){
@@ -62,16 +75,57 @@
                     this.goods = response.data;  // 数据保存在goods下
 
                     // 注意，这里为什么使用vue自带的这个函数$nextTick？？？， 因为滚动组件需要计算高度，vue执行填充数据之后(异步)，再计算高度
-                    this.$nextTick(()=>{
+                    this.$nextTick(() => {  //注意：dom重新渲染之后的回调，保证dom渲染了之后才计算
                         this._initScroll();
+                        this._calculateHight();
                     })
                 }
             });
         },
+        computed: {
+            currentIndex (){ // 利用vue的计算属性，当scrollY变化的时候。computed会重新去做计算
+                for (let i = 0; i < this.listHeight.length; i++) {
+                    let height1 = this.listHeight[i];
+                    let height2 = this.listHeight[i + 1]; // 遍历到最后一个，超出数组范围，是一个undefine
+                    if (!height2 || (this.scrollY >= height1 && this.scrollY < height2)) {
+                        return i;
+                    }
+                }
+                return 0;
+            }
+        },
         methods: {
+            selectMenu(index,event){ // 在pc上和手机上，有兼容性问题。pc上会响应两次click事件。需要下面的判断
+                if(!event._constructed){ // better-scroll派发的事件，_constructed为true，浏览器自带的event事件，_constructed为false
+                    return;
+                }
+                let foodList = this.$els.foodsWrapper.getElementsByClassName('food-list-hook');
+                let el = foodList[index]; // 拿到需要滚动到的右侧元素
+                this.foodScroll.scrollToElement(el, 300); // 调用better-scroll的api，滚动到指定元素
+            },
             _initScroll(){
-                this.menuScroll = new BScroll(this.$els.menuWrapper, {});
-                this.foodScroll = new BScroll(this.$els.foodsWrapper, {});
+                this.menuScroll = new BScroll(this.$els.menuWrapper, {
+                    click:true // 因为better-scroll在监听scroll事件的时候，会阻止冒泡。 click为true，会派发一次点击事件
+                });
+                this.foodScroll = new BScroll(this.$els.foodsWrapper, {
+                    probeType: 3,  //api需要传入类型，监听滚动事件
+                    click:true // 因为better-scroll在监听scroll事件的时候，会阻止冒泡。 click为true，会派发一次点击事件
+                });
+
+                this.foodScroll.on('scroll', (pos) => { // 监听滚动事件
+                    this.scrollY = Math.abs(Math.round(pos.y));
+                });
+            },
+            _calculateHight(){
+                let foodList = this.$els.foodsWrapper.getElementsByClassName('food-list-hook');
+                let height = 0;
+                this.listHeight.push(height);
+                for (let i = 0; i < foodList.length; i++) {
+                    let item = foodList[i];
+                    height += item.clientHeight;
+                    this.listHeight.push(height);
+                }
+
             }
         }
 
@@ -98,6 +152,14 @@
                 width 56px
                 line-height 14px
                 padding 0 12px
+                &.current
+                    position relative
+                    background #fff
+                    font-weight 700
+                    z-index 10
+                    margin-top -1px
+                    .text
+                        border-none()
                 .icon
                     display inline-block
                     vertical-align top
@@ -173,4 +235,9 @@
                             text-decoration line-through
                             font-size 10px
                             color rgb(147, 153, 159)
+
+                    .cartcontrol-wrapper
+                        position absolute
+                        right 0
+                        bottom 12px
 </style>
