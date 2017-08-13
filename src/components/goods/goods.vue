@@ -3,7 +3,8 @@
         <!--使用v-el生成vue可以直接使用的对象，注意这里一定要使用中划线，不要使用驼峰。那么在js中就可以直接使用：this.$els.menuWrapper -->
         <div class="menu-wrapper" v-el:menu-wrapper>
             <ul>
-                <li v-for="item in goods" class="menu-item" :class="{'current':currentIndex===$index}" @click="selectMenu($index, $event)">
+                <li v-for="item in goods" class="menu-item" :class="{'current':currentIndex===$index}"
+                    @click="selectMenu($index, $event)">
                     <span class="text border-1px">
                         <span v-show="item.type>0" class="icon" :class="classMap[item.type]"></span>{{item.name}}
                     </span>
@@ -15,7 +16,7 @@
                 <li v-for="item in goods" class="food-list food-list-hook">
                     <h1 class="title">{{item.name}}</h1>
                     <ul>
-                        <li v-for="food in item.foods" class="food-item border-1px">
+                        <li @click="selectFood(food, $event)" v-for="food in item.foods" class="food-item border-1px">
                             <div class="icon">
                                 <img :src="food.icon" width="57px" height="57px">
                             </div>
@@ -29,7 +30,8 @@
                                     <span class="now">￥{{food.price}}</span><span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
                                 </div>
                                 <div class="cartcontrol-wrapper">
-                                    <cartcontrol :food="food"></cartcontrol> <!--food传递到子组件cartcontrol中去。在子组件中去给food添加count属性-->
+                                    <cartcontrol :food="food"></cartcontrol>
+                                    <!--food传递到子组件cartcontrol中去。在子组件中去给food添加count属性-->
                                 </div>
                             </div>
 
@@ -39,8 +41,10 @@
             </ul>
         </div>
         <!--父组件给子组件传递值，需要注意，一定要使用中划线, v-ref父组件引用子组件-->
-        <shopcart v-ref:shopcart :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice" :select-foods="selectFoods"></shopcart>
+        <shopcart v-ref:shopcart :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice"
+                  :select-foods="selectFoods"></shopcart>
     </div>
+    <food :food="selectedFood" v-ref:food></food>
 </template>
 
 <script type="text/ecmascript-6">
@@ -48,6 +52,7 @@
     import BScroll from 'better-scroll'
     import shopcart from 'components/shopcart/shopcart'
     import cartcontrol from 'components/cartcontrol/cartcontrol'
+    import food from 'components/food/food'
 
     const ERR_OK = 0;
     export default{
@@ -56,15 +61,17 @@
                 type: Object
             }
         },
-        components:{
+        components: {
             shopcart,
-            cartcontrol
+            cartcontrol,
+            food
         },
         data(){
             return {
                 goods: [],
                 listHeight: [],  //存放每个商品分类区间的高度
-                scrollY: 0
+                scrollY: 0,
+                selectedFood: {}
             }
         },
         created(){
@@ -96,9 +103,9 @@
             },
             selectFoods(){ // 遍历goods中的good,然后遍历good中的food，而food中的count，是在cartcontrol.vue组件中添加的
                 let foods = [];
-                this.goods.forEach((good)=>{
-                    good.foods.forEach((food)=>{
-                        if(food.count){ // foods
+                this.goods.forEach((good) => {
+                    good.foods.forEach((food) => {
+                        if (food.count) { // foods
                             foods.push(food);  //food中的count变化就会通知selectFoods重新计算, 而shopcart购物车中的界面，也是依赖selectFoods变化。从而形成联动
                         }
                     })
@@ -107,21 +114,31 @@
             }
         },
         methods: {
-            selectMenu(index,event){ // 在pc上和手机上，有兼容性问题。pc上会响应两次click事件。需要下面的判断
-                if(!event._constructed){ // better-scroll派发的事件，_constructed为true，浏览器自带的event事件，_constructed为false
+            selectMenu(index, event){ // 在pc上和手机上，有兼容性问题。pc上会响应两次click事件。需要下面的判断
+                if (!event._constructed) { // better-scroll派发的事件，_constructed为true，浏览器自带的event事件，_constructed为false
                     return;
                 }
                 let foodList = this.$els.foodsWrapper.getElementsByClassName('food-list-hook');
                 let el = foodList[index]; // 拿到需要滚动到的右侧元素
                 this.foodScroll.scrollToElement(el, 300); // 调用better-scroll的api，滚动到指定元素
             },
+            selectFood(food, event){
+                if (!event._constructed) {
+                    return;
+                }
+                this.selectedFood = food;
+
+                // 调用子组件的show方法
+                this.$refs.food.show();
+
+            },
             _initScroll(){
                 this.menuScroll = new BScroll(this.$els.menuWrapper, {
-                    click:true // 因为better-scroll在监听scroll事件的时候，会阻止冒泡。 click为true，会派发一次点击事件
+                    click: true // 因为better-scroll在监听scroll事件的时候，会阻止冒泡。 click为true，会派发一次点击事件
                 });
                 this.foodScroll = new BScroll(this.$els.foodsWrapper, {
                     probeType: 3,  //api需要传入类型，监听滚动事件
-                    click:true // 因为better-scroll在监听scroll事件的时候，会阻止冒泡。 click为true，会派发一次点击事件
+                    click: true // 因为better-scroll在监听scroll事件的时候，会阻止冒泡。 click为true，会派发一次点击事件
                 });
 
                 this.foodScroll.on('scroll', (pos) => { // 监听滚动事件
@@ -141,12 +158,13 @@
             },
             _drop(target){ // 调用子组件shopcart中的drop方法
                 // 体验优化，异步执行下落动画
-                this.$nextTick(()=>{
+                this.$nextTick(() => {
                     this.$refs.shopcart.drop(target); // 通过$refs访问子组件，前提是在子组件间使用了： v-ref:shopcart
                 })
             }
+
         },
-        events:{  // 事件监听
+        events: {  // 事件监听
             'cart.add'(target){ // 接收shopcart子组件dispatch传递过来的'cart.add'事件
                 this._drop(target);
             }
