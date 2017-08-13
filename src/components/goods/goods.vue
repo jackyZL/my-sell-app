@@ -1,4 +1,4 @@
-<template>
+<template xmlns:v-el="http://www.w3.org/1999/xhtml">
     <div class="goods">
         <!--使用v-el生成vue可以直接使用的对象，注意这里一定要使用中划线，不要使用驼峰。那么在js中就可以直接使用：this.$els.menuWrapper -->
         <div class="menu-wrapper" v-el:menu-wrapper>
@@ -29,7 +29,7 @@
                                     <span class="now">￥{{food.price}}</span><span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
                                 </div>
                                 <div class="cartcontrol-wrapper">
-                                    <cartcontrol :food="food"></cartcontrol>
+                                    <cartcontrol :food="food"></cartcontrol> <!--food传递到子组件cartcontrol中去。在子组件中去给food添加count属性-->
                                 </div>
                             </div>
 
@@ -38,7 +38,8 @@
                 </li>
             </ul>
         </div>
-        <shopcart :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice" ></shopcart>
+        <!--父组件给子组件传递值，需要注意，一定要使用中划线, v-ref父组件引用子组件-->
+        <shopcart v-ref:shopcart :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice" :select-foods="selectFoods"></shopcart>
     </div>
 </template>
 
@@ -92,6 +93,17 @@
                     }
                 }
                 return 0;
+            },
+            selectFoods(){ // 遍历goods中的good,然后遍历good中的food，而food中的count，是在cartcontrol.vue组件中添加的
+                let foods = [];
+                this.goods.forEach((good)=>{
+                    good.foods.forEach((food)=>{
+                        if(food.count){ // foods
+                            foods.push(food);  //food中的count变化就会通知selectFoods重新计算, 而shopcart购物车中的界面，也是依赖selectFoods变化。从而形成联动
+                        }
+                    })
+                });
+                return foods;
             }
         },
         methods: {
@@ -126,7 +138,19 @@
                     this.listHeight.push(height);
                 }
 
+            },
+            _drop(target){ // 调用子组件shopcart中的drop方法
+                // 体验优化，异步执行下落动画
+                this.$nextTick(()=>{
+                    this.$refs.shopcart.drop(target); // 通过$refs访问子组件，前提是在子组件间使用了： v-ref:shopcart
+                })
             }
+        },
+        events:{  // 事件监听
+            'cart.add'(target){ // 接收shopcart子组件dispatch传递过来的'cart.add'事件
+                this._drop(target);
+            }
+
         }
 
     }
