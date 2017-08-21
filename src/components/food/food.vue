@@ -30,6 +30,21 @@
             <div class="rating">
                 <h1 class="title">商品评价</h1>
                 <ratingselect :select-type="selectType" :only-content="onlyContent" :desc="desc" :ratings="food.ratings"></ratingselect>
+                <div class="rating-wrapper">
+                    <ul v-show="food.ratings && food.ratings.length">
+                        <li v-show="needShow(rating.rateType,rating.text)" v-for="rating in food.ratings" class="rating-item border-1px">
+                            <div class="user">
+                                <span class="name">{{rating.username}}</span>
+                                <img :src="rating.avatar" class="avatar" width="12" height="12">
+                            </div>
+                            <div class="time">{{rating.rateTime | formatDate}}</div>
+                            <p class="text">
+                                <span :class="{'icon-thumb_up':rating.rateType===0,'icon-thumb_down':rating.rateType===1}"></span>{{rating.text}}
+                            </p>
+                        </li>
+                    </ul>
+                    <div class="no-rating" v-show="!food.ratings || !food.ratings.length">暂无评价</div>
+                </div>
             </div>
         </div>
     </div>
@@ -39,6 +54,7 @@
 
     import BScroll from 'better-scroll';
     import Vue from 'vue';
+    import {formatDate} from 'common/js/date'  // 如果在date.js中export default在import的时候可以不带花括号，export function的时候，import需要带花括号
     import cartcontrol from 'components/cartcontrol/cartcontrol.vue';
     import split from 'components/split/split';
     import ratingselect from 'components/ratingselect/ratingselect';
@@ -71,6 +87,8 @@
                 }
             }
         },
+        computed:{
+        },
         methods: {
             addFirst(event){ // 不传参，默认的参数就是 $event
                 if(!event._constructed){
@@ -98,15 +116,48 @@
             },
             hide(){
                 this.showFlag = false;
+            },
+            needShow(type, text){
+
+                if(this.onlyContent && !text){
+                    return false;
+                }
+                if(this.selectType === ALL){
+                    return true;
+                }else{
+                    return type === this.selectType;
+                }
+            }
+
+        },
+        filters:{
+            formatDate(time){
+                let date = new Date(time);
+                return formatDate(date,'yyyy-MM-dd hh:mm');
             }
         },
         events:{
+            'ratingtype.select'(type){
+                this.selectType = type;
+                this.$nextTick(()=>{
+                    this.scroll.refresh();
+                })
 
+            },
+            'content.toggle'(onlyContent){
+                this.onlyContent = onlyContent;
+                this.$nextTick(()=>{
+                    this.scroll.refresh();
+                })
+            }
         }
     }
 </script>
 
 <style lang="stylus" rel="stylesheet/stylus">
+
+    @import "../../common/stylus/mixin.styl"
+
     .food
         position fixed
         left 0
@@ -214,6 +265,46 @@
                 margin-left 18px
                 font-size 14px
                 color rgb(7,17,27)
+            .rating-wrapper
+                padding 0 18px
+                .rating-item
+                    position: relative
+                    padding 16px 0
+                    border-1px(rgba(7,17,27,0.1))
+                    .user
+                        position absolute
+                        right 0%
+                        top 16px
+                        font-size 0
+                        line-height 12px
+                        .name
+                            display inline-block
+                            margin-right 6px
+                            vertical-align top
+                            font-size 10px
+                            color rgb(147,153,159)
+                        .avatar
+                            border-radius 50%
 
-
+                    .time
+                        margin-bottom 6px
+                        font-size 10px
+                        line-height 12px
+                        color rgb(147,153,159)
+                    .text
+                        line-height 16px
+                        font-size 12px
+                        color rbg(7,17,27)
+                        .icon-thumb_up, .icon-thumb_down
+                            margin-right 4px
+                            line-height 16px
+                            font-size 12px
+                        .icon-thumb_up
+                            color rgb(0,160,220)
+                        .icon-thumb_down
+                            color rgb(147,153,159)
+                .no-rating
+                    padding 16px 0
+                    font-size 12px
+                    color rgb(147,153,159)
 </style>
