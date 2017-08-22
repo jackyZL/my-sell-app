@@ -7,12 +7,14 @@
             <div class="tab-item"><a v-link="{path:'/ratings'}">评论</a></div>
             <div class="tab-item"><a v-link="{path:'/seller'}">商家</a></div>
         </div>
-        <router-view :seller="seller"></router-view>
+        <!--keep-alive在切换vue-router的时候。保留各个视图的状态。各个router-link也不会去重新请求后台数据  -->
+        <router-view :seller="seller" keep-alive></router-view>
     </div>
 </template>
 
 <script type="text/ecmascript-6">
 
+    import {urlParse} from 'common/js/util'
     import header from 'components/header/header.vue'
 
     const ERR_OK = 0;
@@ -31,11 +33,11 @@
         },
 
         created(){
-            this.$http.get('/api/seller').then((response) => {
+            this.$http.get('/api/seller?id='+this.seller.id).then((response) => {
                 response = response.body;
                 if(response.errno === ERR_OK){  // 请求状态
-                    this.seller = response.data;
-
+                    //this.seller = response.data;
+                    this.seller = Object.assign({}, this.seller, response.data); //使用assign扩展对象属性，vue官网推荐的方法.
                 }
             });
         },

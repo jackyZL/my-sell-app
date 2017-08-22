@@ -12,7 +12,7 @@ var env = process.env.NODE_ENV === 'testing'
 
 var webpackConfig = merge(baseWebpackConfig, {
   module: {
-    loaders: utils.styleLoaders({ sourceMap: config.build.productionSourceMap, extract: true })
+    loaders: utils.styleLoaders({ sourceMap: config.build.productionSourceMap, extract: true }) /*提取vue文件中的css到单独的文件*/
   },
   devtool: config.build.productionSourceMap ? '#source-map' : false,
   output: {
